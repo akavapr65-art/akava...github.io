@@ -7,67 +7,26 @@
 </head>
 <body>
   <h2>Подключение VK</h2>
-  <p id="status">Обработка авторизации...</p>
+  <p id="status">Передача авторизации SMM Agent...</p>
 
   <script>
-    (async function () {
+    (function () {
       const status = document.getElementById("status");
 
-      const hash = new URLSearchParams(
-        window.location.hash.substring(1)
-      );
+      const hash = window.location.hash;
 
-      const accessToken = hash.get("access_token");
-      const userId = hash.get("user_id");
-      const state = hash.get("state");
-      const error = hash.get("error");
-      const errorDescription = hash.get("error_description");
-
-      if (error) {
+      if (!hash || !hash.includes("access_token=")) {
         status.textContent =
-          "Ошибка VK: " + (errorDescription || error);
+          "Токен VK не найден. Запустите авторизацию VK заново.";
         return;
       }
 
-      if (!accessToken) {
-        status.textContent =
-          "Токен VK не найден. Откройте страницу через авторизацию VK.";
-        return;
-      }
+      status.textContent =
+        "Авторизация получена. Передаю данные SMM Agent...";
 
-      status.textContent = "Токен получен. Передаю его SMM Agent...";
-
-      try {
-        const response = await fetch(
-          "http://127.0.0.1:8765/vk/oauth/complete",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              access_token: accessToken,
-              user_id: userId,
-              state: state
-            })
-          }
-        );
-
-        const result = await response.json();
-
-        if (response.ok && result.ok) {
-          status.textContent =
-            "✓ VK успешно подключён. Эту вкладку можно закрыть.";
-        } else {
-          status.textContent =
-            "Ошибка подключения: " +
-            (result.error || "неизвестная ошибка");
-        }
-      } catch (e) {
-        status.textContent =
-          "Не удалось связаться с SMM Agent. Убедитесь, что агент запущен.";
-        console.error(e);
-      }
+      // Передаём OAuth-данные локальному агенту.
+      window.location.href =
+        "http://127.0.0.1:8765/vk/oauth/callback" + hash;
     })();
   </script>
 </body>

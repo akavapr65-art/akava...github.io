@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VK OAuth — Здоровый ритм</title>
+</head>
+<body>
+  <h2>Подключение VK</h2>
+  <p id="status">Обработка авторизации...</p>
+
+  <script>
+    (async function () {
+      const status = document.getElementById("status");
+
+      const hash = new URLSearchParams(
+        window.location.hash.substring(1)
+      );
+
+      const accessToken = hash.get("access_token");
+      const userId = hash.get("user_id");
+      const state = hash.get("state");
+      const error = hash.get("error");
+      const errorDescription = hash.get("error_description");
+
+      if (error) {
+        status.textContent =
+          "Ошибка VK: " + (errorDescription || error);
+        return;
+      }
+
+      if (!accessToken) {
+        status.textContent =
+          "Токен VK не найден. Откройте страницу через авторизацию VK.";
+        return;
+      }
+
+      status.textContent = "Токен получен. Передаю его SMM Agent...";
+
+      try {
+        const response = await fetch(
+          "http://127.0.0.1:8765/vk/oauth/complete",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              access_token: accessToken,
+              user_id: userId,
+              state: state
+            })
+          }
+        );
+
+        const result = await response.json();
+
+        if (response.ok && result.ok) {
+          status.textContent =
+            "✓ VK успешно подключён. Эту вкладку можно закрыть.";
+        } else {
+          status.textContent =
+            "Ошибка подключения: " +
+            (result.error || "неизвестная ошибка");
+        }
+      } catch (e) {
+        status.textContent =
+          "Не удалось связаться с SMM Agent. Убедитесь, что агент запущен.";
+        console.error(e);
+      }
+    })();
+  </script>
+</body>
+</html>
